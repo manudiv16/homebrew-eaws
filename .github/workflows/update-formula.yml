@@ -1,0 +1,75 @@
+name: Update Formula
+
+on:
+  repository_dispatch:
+    types: [new-release]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to update to (e.g., 0.3.0)'
+        required: true
+        type: string
+
+jobs:
+  update-formula:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.0'
+
+      - name: Get version
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${{ github.event.client_payload.version }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download release binaries and calculate checksums
+        id: checksums
+        run: |
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          
+          # Download binaries
+          curl -L -o eaws-darwin-arm64 "https://github.com/manudiv16/eaws/releases/download/v${VERSION}/eaws-darwin-arm64"
+          curl -L -o eaws-darwin-amd64 "https://github.com/manudiv16/eaws/releases/download/v${VERSION}/eaws-darwin-amd64"
+          curl -L -o eaws-linux-amd64 "https://github.com/manudiv16/eaws/releases/download/v${VERSION}/eaws-linux-amd64"
+          
+          # Calculate checksums
+          ARM64_SHA=$(sha256sum eaws-darwin-arm64 | cut -d' ' -f1)
+          AMD64_SHA=$(sha256sum eaws-darwin-amd64 | cut -d' ' -f1)
+          LINUX_SHA=$(sha256sum eaws-linux-amd64 | cut -d' ' -f1)
+          
+          echo "ARM64_SHA=${ARM64_SHA}" >> $GITHUB_OUTPUT
+          echo "AMD64_SHA=${AMD64_SHA}" >> $GITHUB_OUTPUT
+          echo "LINUX_SHA=${LINUX_SHA}" >> $GITHUB_OUTPUT
+
+      - name: Update formula
+        run: |
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          ARM64_SHA=${{ steps.checksums.outputs.ARM64_SHA }}
+          AMD64_SHA=${{ steps.checksums.outputs.AMD64_SHA }}
+          LINUX_SHA=${{ steps.checksums.outputs.LINUX_SHA }}
+          
+          # Update the formula file
+          sed -i "s/version \".*\"/version \"${VERSION}\"/" Formula/eaws.rb
+          sed -i "s|download/v[0-9.]*/|download/v${VERSION}/|g" Formula/eaws.rb
+          sed -i "s/YOUR_ARM64_SHA256_HERE/${ARM64_SHA}/" Formula/eaws.rb
+          sed -i "s/YOUR_AMD64_SHA256_HERE/${AMD64_SHA}/" Formula/eaws.rb
+          sed -i "s/YOUR_LINUX_SHA256_HERE/${LINUX_SHA}/" Formula/eaws.rb
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add Formula/eaws.rb
+          git commit -m "Update formula to version ${{ steps.get_version.outputs.VERSION }}"
+          git push
