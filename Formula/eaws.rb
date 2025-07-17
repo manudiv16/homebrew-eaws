@@ -16,7 +16,7 @@ class Eaws < Formula
     sha256 "YOUR_LINUX_SHA256_HERE"
   end
 
-  depends_on "aws-cli"
+  depends_on "awscli"
 
   def install
     bin.install Dir["eaws*"].first => "eaws"
