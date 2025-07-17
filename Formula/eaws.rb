@@ -5,14 +5,14 @@ class Eaws < Formula
   
   if OS.mac?
     if Hardware::CPU.arm?
-      url "https://github.com/manudiv16/eaws/releases/download/v0.2.0/eaws-darwin-arm64"
+      url "https://github.com/manudiv16/eaws/releases/download/v0.3.2/eaws-darwin-arm64"
       sha256 "YOUR_ARM64_SHA256_HERE"
     else
-      url "https://github.com/manudiv16/eaws/releases/download/v0.2.0/eaws-darwin-amd64"
+      url "https://github.com/manudiv16/eaws/releases/download/v0.3.2/eaws-darwin-amd64"
       sha256 "YOUR_AMD64_SHA256_HERE"
     end
   elsif OS.linux?
-    url "https://github.com/manudiv16/eaws/releases/download/v0.2.0/eaws-linux-amd64"
+    url "https://github.com/manudiv16/eaws/releases/download/v0.3.2/eaws-linux-amd64"
     sha256 "YOUR_LINUX_SHA256_HERE"
   end
 
